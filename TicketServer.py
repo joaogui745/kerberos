@@ -40,15 +40,6 @@ class TicketServer(threading.Thread):
             self.socket.send_json(response)
 
     def handle_request(self, request):
-        """
-        Implementa a etapa do slide:
-
-        Cliente -> TGS:
-        ID_v || Ticket_tgs || Authenticator_c
-
-        TGS -> Cliente:
-        E(K_c_tgs, [K_c_v || ID_v || TS4 || Ticket_v])
-        """
 
         service_id = request["service_id"]
         encrypted_tgt = request["tgt"]
