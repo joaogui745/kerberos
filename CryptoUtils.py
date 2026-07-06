@@ -1,6 +1,8 @@
 import base64
 import json
 import secrets
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 
@@ -12,6 +14,21 @@ SERVICE_KEYS = {
 
 def generate_key():
     return base64.b64encode(secrets.token_bytes(32)).decode("utf-8")
+
+
+def derive_kerberos_key(password, user):
+    salt_string = f"unb.br{user}"
+    static_salt = salt_string.encode("utf-8")
+    password_bytes = password.encode("utf-8")
+
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=static_salt,
+        iterations=1000,
+    )
+
+    return base64.b64encode(kdf.derive(password_bytes)).decode("utf-8")
 
 
 def _decode_key(key_base64):
