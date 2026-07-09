@@ -4,6 +4,10 @@ import json
 
 from CryptoUtils import encrypt_json, decrypt_json, derive_kerberos_key
 
+portas = {
+    "server_tgs0" : 5556,
+    "service1": 5557
+}
 
 class Client:
     def __init__(self, client_id, password):
@@ -12,17 +16,20 @@ class Client:
         self.socket = self.context.socket(zmq.REQ)
 
         self.session_key = derive_kerberos_key(password, client_id)
-        self.client_tgs_key = None
-        self.session_key_service = None
-        self.service_ticket = None
+        self.key_client_tgs = None
+        self.tgs_id = None
+        self.ticket_tgs = None
 
-    def request_as(self, port=5555):
-        print(f"\n[Cliente] Solicitando Ticket ao AS na porta {port}...")
+        self.key_client_service = None
+        self.ticket_service = None
 
-        if self.session_key is None:
+    def request_auth_server(self, porta):
+        print(f"\n[Cliente] Solicitando Ticket ao AS na porta {porta}...")
+
+        if not self.session_key:
             raise Exception("Cliente não possui chave configurada.")
 
-        self.socket.connect(f"tcp://localhost:{port}")
+        self.socket.connect(f"tcp://localhost:{porta}")
 
         request = {
             "client_id": self.client_id,
@@ -34,54 +41,59 @@ class Client:
 
         response = self.socket.recv_json()
 
-        self.socket.disconnect(f"tcp://localhost:{port}")
+        self.socket.disconnect(f"tcp://localhost:{porta}")
 
         if response.get("status") != "ok":
             raise Exception(response.get("message"))
 
         payload = response.get("payload")
-        print(f"[Cliente] Payload recebido: Tamanho da cifra: {len(payload["ciphertext"])}")
+        print(f"[Cliente] Payload recebido do AS: Tamanho da cifra: {len(payload.get("ciphertext"))}")
 
+        print("[Cliente] Descriptografando payload do AS...")
         decrypted_response = decrypt_json(self.session_key, payload)
 
+        self.key_client_tgs = decrypted_response.get("key_client_tgs")
+        self.tgs_id = decrypted_response.get('tgs_id')
         # Mostrar campos principais da resposta decifrada
-        self.client_tgs_key = decrypted_response.get("client_tgs_key")
-        print(f"[Cliente] Chave Cliente-TGS: {self.client_tgs_key}")
-        print(f"[Cliente] ID TGS: {decrypted_response.get('tgs_id')}, timestamp: {decrypted_response.get('timestamp')}, lifetime: {decrypted_response.get('lifetime')}")
+        print(f"[Cliente] Chave Cliente-TGS: {self.key_client_tgs}")
+        print(f"[Cliente] ID TGS: {self.tgs_id}, timestamp: {decrypted_response.get('timestamp')}, lifetime: {decrypted_response.get('lifetime')}")
 
         # Mostrar metadados do ticket TGS (permanece cifrado para o TGS)
-        tgs_ticket = decrypted_response.get('tgs_ticket')
-        print(f"[Cliente] TGS ticket: Tamanho da cifra:  {len(tgs_ticket["ciphertext"])}")
+        self.ticket_tgs = decrypted_response.get('ticket_tgs')
+        print(f"[Cliente] Ticket TGS: Tamanho da cifra:  {len(self.ticket_tgs['ciphertext'])}")
 
-        return decrypted_response.get("tgs_ticket")
+        return
 
-    def request_tgs(self, tgt, session_key_tgs=None, service_id="service1", port=5556):
-    
-        print(f"\n[Cliente] 2. Solicitando Ticket de Serviço ao TGS (Porta {port})...")
+    def request_tgs(self, service_id, porta):
+        if not self.tgs_id:
+            raise Exception("Cliente não possui ID TGS")
+        
+        if not self.key_client_tgs:
+            raise Exception("Cliente não possui chave Cliente-TGS")
+        
+        if not service_id:
+            raise Exception("ID do serviço inexistente")
+        
+        print(f"\n[Cliente] Solicitando Ticket de Serviço ao TGS (Porta {porta})...")
 
-        if session_key_tgs is not None:
-            self.session_key_tgs = session_key_tgs
-
-        if self.session_key_tgs is None:
-            raise Exception("Cliente não possui K_c_tgs. Obtenha a chave no AS.")
-
-        self.socket.connect(f"tcp://localhost:{port}")
+        self.socket.connect(f"tcp://localhost:{porta}")
 
         now = int(time.time())
 
         authenticator_payload = {
             "client_id": self.client_id,
+            "client_address" : "localhost",
             "timestamp": now
         }
 
         encrypted_authenticator = encrypt_json(
-            self.session_key_tgs,
+            self.key_client_tgs,
             authenticator_payload
         )
 
         request = {
             "service_id": service_id,
-            "tgt": tgt,
+            "ticket_tgs": self.ticket_tgs,
             "authenticator": encrypted_authenticator
         }
 
@@ -89,38 +101,78 @@ class Client:
 
         response = self.socket.recv_json()
 
-        print(f"[Cliente] Resposta do TGS: {response}")
+        self.socket.disconnect(f"tcp://localhost:{porta}")
 
-        self.socket.disconnect(f"tcp://localhost:{port}")
 
-        if response["status"] != "ok":
-            raise Exception(response["message"])
+        if response.get("status") != "ok":
+            raise Exception(response.get("message"))
 
         decrypted_response = decrypt_json(
-            self.session_key_tgs,
-            response["encrypted_response"]
+            self.key_client_tgs,
+            response.get("payload")
         )
 
-        self.session_key_service = decrypted_response["session_key_service"]
-        self.service_ticket = decrypted_response["ticket_service"]
+        print("[Cliente] Descriptografando payload do TGS...")
 
-        print("[Cliente] Ticket de serviço recebido com sucesso.")
-        print("[Cliente] K_c_v obtida com sucesso.")
+        self.key_client_service = decrypted_response.get("key_client_service")
+        self.ticket_service = decrypted_response.get("ticket_service")
+        self.service_id = decrypted_response.get("service_id")
+        print(f"[Cliente] Service ID: {self.service_id}, Chave Cliente-servico: {self.key_client_service}")
+        print(f"[Cliente] Ticket service: Tamanho da cifra: {len(self.ticket_service.get('ciphertext'))}")
+        return
 
-        return self.service_ticket
+    def request_service(self, porta):
 
-    def request_service(self, service_ticket, port=5557):
-        print(f"\n[Cliente] 3. Solicitando acesso ao Serviço (Porta {port})...")
+        if not self.client_id:
+            raise Exception("Cliente não possui ID configurado")
 
-        self.socket.connect(f"tcp://localhost:{port}")
+        if not self.ticket_service:
+            raise Exception("Ticket de serviço inexistente")
+        
+        print(f"\n[Cliente] Solicitando acesso ao Serviço (Porta {porta})...")
+        print(f"[Cliente] Ticket service: Tamanho da cifra: {len(self.ticket_service.get('ciphertext'))}")
+
+        self.socket.connect(f"tcp://localhost:{porta}")
+
+        now = int(time.time())
+
+        authenticator_payload = {
+            "client_id": self.client_id,
+            "client_address" : "localhost",
+            "timestamp": now
+        }
+
+        encrypted_authenticator = encrypt_json(
+            self.key_client_service,
+            authenticator_payload
+        )
+
+        print(f"[Cliente] Authenticator service: Tamanho da cifra: {len(encrypted_authenticator.get('ciphertext'))}")
+
+        encrypted_message = encrypt_json(
+            self.key_client_service,
+            "Meu nome não é Johnny!"
+        )
+
+        print(f"[Cliente] Message service: Tamanho da cifra: {len(encrypted_message.get('ciphertext'))}")
 
         self.socket.send_json({
-            "service_ticket": service_ticket,
-            "authenticator": "encrypted_auth_data_2"
+            "ticket_service": self.ticket_service,
+            "authenticator": encrypted_authenticator,
+            "message" : encrypted_message
         })
 
         response = self.socket.recv_json()
+        self.socket.disconnect(f"tcp://localhost:{porta}")
 
-        print(f"[Cliente] Resposta do Serviço: {response}")
+        if response.get("status") != "ok":
+            raise Exception(response.get("message"))
 
-        self.socket.disconnect(f"tcp://localhost:{port}")
+        print("[Cliente] Descriptografando prova de autenticacao do Service...")
+
+        service_proof = decrypt_json(self.key_client_service, response.get("payload"))
+
+        if service_proof.get("timestamp") != now + 1:
+            raise Exception("Prova de autenticacao do Service invalida")
+
+        print(f"[Cliente] Prova de autenticacao validada: timestamp {service_proof.get('timestamp')}")

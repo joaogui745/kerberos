@@ -6,11 +6,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 
-TGS_SECRET_KEY = "IRpMmtvhXXphfL6MzrRMOOK1EB8jlwN82/Fza1I5j7I="
 
-SERVICE_KEYS = {
-    "service1": "fAJHyqCDIsyyi+eTMVqgFjl7yM5ijOvcqXYJ7RlhHXs="
-}
 
 def generate_key():
     return base64.b64encode(secrets.token_bytes(32)).decode("utf-8")

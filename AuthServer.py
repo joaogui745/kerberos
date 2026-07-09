@@ -2,14 +2,15 @@ import zmq
 import threading
 import time
 
-from CryptoUtils import TGS_SECRET_KEY, encrypt_json, generate_key
+from CryptoUtils import encrypt_json, generate_key
+from TicketServer import TGS_SECRET_KEY
 
 
 SESSION_KEYS = {
     "joaogui": "KI0qrlG3Mn7QoWIdUnHAbB0oVIhcV1ivKQth1cJ2Nu4="
 }
 
-TGS_ID = "FOO"
+TGS_ID = "server_tgs0"
 
 class AuthServer(threading.Thread):
     def __init__(self, port=5555):
@@ -33,36 +34,38 @@ class AuthServer(threading.Thread):
                 if client_id not in SESSION_KEYS:
                     raise Exception("Cliente desconhecido")
 
-                print(f"[AS] Cliente: {client_id}, timestamp: {request.get('timestamp')}")
+                print(f"[AS] Cliente Recebido: {client_id}, timestamp: {request.get('timestamp')}")
 
                 client_key = SESSION_KEYS[client_id]
-                client_tgs_key = generate_key()
+                key_client_tgs = generate_key()
                 now = int(time.time())
 
                 ticket_tgs_payload = {
-                    "client_tgs_key": client_tgs_key,
+                    "key_client_tgs": key_client_tgs,
                     "client_id" : client_id,
-                    "client_address" : "foo",
+                    "client_address" : "localhost",
                     "tgs_id" : TGS_ID,
                     "timestamp": now,
                     "lifetime": 300
                 }
 
-                tgs_ticket = encrypt_json(TGS_SECRET_KEY, ticket_tgs_payload)
+                ticket_tgs = encrypt_json(TGS_SECRET_KEY, ticket_tgs_payload)
+
+                print("[AS] Criptografando payload do ticket TGS...")
 
                 response_payload = {
-                    "client_tgs_key": client_tgs_key,
+                    "key_client_tgs": key_client_tgs,
                     "tgs_id" : TGS_ID,
                     "timestamp": now,
                     "lifetime" : 300,
-                    "tgs_ticket": tgs_ticket,
+                    "ticket_tgs": ticket_tgs,
                 }
 
-                encrypted_response = encrypt_json(client_key, response_payload)
+                encrypted_payload = encrypt_json(client_key, response_payload)
 
                 response = {
                     "status": "ok",
-                    "payload": encrypted_response
+                    "payload": encrypted_payload
                 }
             except Exception as error:
                 response = {
