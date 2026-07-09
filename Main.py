@@ -7,7 +7,7 @@ from TicketServer import TicketServer
 
 SERVICE_OPTIONS = {
     "1": "WEBCHAT",
-    "2": "TOUPPERCASE",
+    "2": "COLOCAR_MAIUSCULO",
 }
 
 

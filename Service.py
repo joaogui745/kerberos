@@ -6,7 +6,7 @@ from CryptoUtils import decrypt_json, encrypt_json
 
 SERVICE_SECRET_KEY = "fAJHyqCDIsyyi+eTMVqgFjl7yM5ijOvcqXYJ7RlhHXs="
 
-VALID_SERVICE_IDS = {"WEBCHAT", "TOUPPERCASE"}
+VALID_SERVICE_IDS = {"WEBCHAT", "COLOCAR_MAIUSCULO"}
 
 class Service(threading.Thread):
     def __init__(self, port=5557):
@@ -116,7 +116,7 @@ class Service(threading.Thread):
             print(f"[Service] {client_id}: {message}")
             return None
 
-        if service_id == "TOUPPERCASE":
+        if service_id == "COLOCAR_MAIUSCULO":
             upper_message = str(message).upper()
             print(f"[Service] {client_id}: {upper_message}")
             return upper_message

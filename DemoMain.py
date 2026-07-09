@@ -6,7 +6,7 @@ from Service import Service
 from TicketServer import TicketServer
 
 
-CLIENT_ID = "joaogui"
+CLIENT_ID = "guilherme" # guilherme, sara ou joaogui
 PASSWORD = "password123"
 
 AS_PORT = 5555
@@ -41,10 +41,10 @@ if __name__ == "__main__":
         print("\n\n3. Chamando WEBCHAT")
         client.request_service(SERVICE_PORT, "WEBCHAT", "Havia uma pedra no meio do caminho")
 
-        print("\n\n4. Solicitando ticket do TGS para TOUPPERCASE")
-        client.request_tgs("TOUPPERCASE", TGS_PORT)
-        print("\n\n5. Chamando TOUPPERCASE")
-        client.request_service(SERVICE_PORT, "TOUPPERCASE", "Minha terra tem palmeiras, onde canta o sabiá")
+        print("\n\n4. Solicitando ticket do TGS para COLOCAR_MAIUSCULO")
+        client.request_tgs("COLOCAR_MAIUSCULO", TGS_PORT)
+        print("\n\n5. Chamando COLOCAR_MAIUSCULO")
+        client.request_service(SERVICE_PORT, "COLOCAR_MAIUSCULO", "Minha terra tem palmeiras, onde canta o sabiá")
 
     except Exception as error:
         print(f"[DemoMain] {error}")

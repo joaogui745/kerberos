@@ -187,7 +187,7 @@ class Client:
         if service_id == "WEBCHAT" and not message:
             raise Exception("Mensagem inexistente para WEBCHAT")
 
-        if service_id == "TOUPPERCASE" and not message:
+        if service_id == "COLOCAR_MAIUSCULO" and not message:
             message = "Meu nome não é Johnny!"
         
         print(f"\n[Cliente] Solicitando acesso ao Serviço (Porta {porta})...")

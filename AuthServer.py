@@ -7,7 +7,9 @@ from TicketServer import TGS_SECRET_KEY
 
 
 SESSION_KEYS = {
-    "joaogui": "KI0qrlG3Mn7QoWIdUnHAbB0oVIhcV1ivKQth1cJ2Nu4="
+    "joaogui": "KI0qrlG3Mn7QoWIdUnHAbB0oVIhcV1ivKQth1cJ2Nu4=",
+    "guilherme" : "BqZ4g3W8+rEXgz/Y07pes9yWWyyOqouO6xHXeanpkLQ=", 
+    "sara" : "scd5k2H9j0UtypyZtFwoXQyLA2+zMiCxtoTRHCWu8mo="
 }
 
 TGS_ID = "server_tgs0"
