@@ -7,7 +7,7 @@ from CryptoUtils import (
     encrypt_json,
     decrypt_json
 )
-from Service import SERVICE_SECRET_KEY, VALID_SERVICE_ID
+from Service import SERVICE_SECRET_KEY, VALID_SERVICE_IDS
 
 TGS_SECRET_KEY = "IRpMmtvhXXphfL6MzrRMOOK1EB8jlwN82/Fza1I5j7I="
 
@@ -45,7 +45,7 @@ class TicketServer(threading.Thread):
         encrypted_ticket_tgs = request.get("ticket_tgs")
         encrypted_authenticator = request.get("authenticator")
 
-        if service_id != VALID_SERVICE_ID:
+        if service_id not in VALID_SERVICE_IDS:
             raise Exception("Servico desconhecido")
 
         
@@ -84,7 +84,7 @@ class TicketServer(threading.Thread):
 
         
         if abs(now - authenticator_timestamp) > self.max_clock_skew:
-            raise Exception("Authenticator expirado ou invalido")
+            raise Exception("Authenticator expirado")
 
         
         key_client_service = generate_key()
@@ -111,6 +111,7 @@ class TicketServer(threading.Thread):
             "key_client_service": key_client_service,
             "service_id": service_id,
             "timestamp": now,
+            "lifetime": 300,
             "ticket_service": encrypted_ticket_service
         }
 

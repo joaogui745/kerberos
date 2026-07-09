@@ -6,7 +6,7 @@ from CryptoUtils import decrypt_json, encrypt_json
 
 SERVICE_SECRET_KEY = "fAJHyqCDIsyyi+eTMVqgFjl7yM5ijOvcqXYJ7RlhHXs="
 
-VALID_SERVICE_ID = "WEBCHAT"
+VALID_SERVICE_IDS = {"WEBCHAT", "TOUPPERCASE"}
 
 class Service(threading.Thread):
     def __init__(self, port=5557):
@@ -31,6 +31,7 @@ class Service(threading.Thread):
                 }
 
             self.socket.send_json(response)
+
     def handle_request(self, request):
         encrypted_ticket_service = request.get("ticket_service")
         encrypted_authenticator = request.get("authenticator")
@@ -54,7 +55,7 @@ class Service(threading.Thread):
         if not key_client_service or not client_id_from_ticket or not client_address_from_ticket or not service_id or timestamp is None or lifetime is None:
             raise Exception("Ticket de servico invalido")
 
-        if service_id != VALID_SERVICE_ID:
+        if service_id not in VALID_SERVICE_IDS:
             raise Exception("Servico desconhecido")
         
         timestamp = int(timestamp)
@@ -85,7 +86,7 @@ class Service(threading.Thread):
             raise Exception("Endereco do ticket diferente do endereco do autenticador")
 
         if abs(now - authenticator_timestamp) > self.max_clock_skew:
-            raise Exception("Authenticator expirado ou invalido")
+            raise Exception("Authenticator expirado")
         
         encrypted_message = request.get("message")
         if not encrypted_message:
@@ -93,14 +94,31 @@ class Service(threading.Thread):
         
         print("[Service] Descriptografando mensagem do cliente...")
         message = decrypt_json(key_client_service, encrypted_message)
-        
-        print(f"[Service] {client_id_from_ticket}: {message}")
+
+        service_response = self._handle_service_message(service_id, client_id_from_ticket, message)
 
         print("[Service] Criptografando prova de autenticacao...")
         response_authenticator = encrypt_json(key_client_service, { "timestamp": authenticator_timestamp + 1})
 
-        return {
+        response = {
             "status": "ok",
             "message": "Authorized",
             "payload": response_authenticator
         }
+
+        if service_response is not None:
+            response["message"] = service_response
+
+        return response
+
+    def _handle_service_message(self, service_id, client_id, message):
+        if service_id == "WEBCHAT":
+            print(f"[Service] {client_id}: {message}")
+            return None
+
+        if service_id == "TOUPPERCASE":
+            upper_message = str(message).upper()
+            print(f"[Service] {client_id}: {upper_message}")
+            return upper_message
+
+        raise Exception("Servico desconhecido")
