@@ -51,7 +51,7 @@ class Client:
             raise Exception(response.get("message"))
 
         payload = response.get("payload")
-        print(f"[Cliente] Payload recebido do AS: Tamanho da cifra: {len(payload.get("ciphertext"))}")
+        print(f"[Cliente] Payload recebido do AS: Tamanho da cifra: {len(payload.get('ciphertext'))}")
 
         print("[Cliente] Descriptografando payload do AS...")
         decrypted_response = decrypt_json(self.session_key, payload)

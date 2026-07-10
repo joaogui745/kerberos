@@ -6,8 +6,6 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 
-
-
 def generate_key():
     return base64.b64encode(secrets.token_bytes(32)).decode("utf-8")
 
