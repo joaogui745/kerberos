@@ -1,6 +1,5 @@
 import time
 import zmq
-import json
 
 from CryptoUtils import encrypt_json, decrypt_json, derive_kerberos_key
 
@@ -8,6 +7,8 @@ portas = {
     "server_tgs0" : 5556,
     "service1": 5557
 }
+
+TGS_ID = "server_tgs0"
 
 class Client:
     def __init__(self, client_id, password):
@@ -26,33 +27,6 @@ class Client:
         self.ticket_service_meta = {}
         self.service_id = None
 
-    def has_valid_service_ticket(self, service_id):
-        ticket_service = self.ticket_service.get(service_id)
-        ticket_meta = self.ticket_service_meta.get(service_id)
-
-        if not ticket_service or not ticket_meta:
-            return False
-
-        timestamp = ticket_meta.get("timestamp")
-        lifetime = ticket_meta.get("lifetime")
-
-        if timestamp is None or lifetime is None:
-            return False
-
-        return int(time.time()) <= int(timestamp) + int(lifetime)
-
-    def has_valid_tgt(self):
-        if not self.ticket_tgs or not self.ticket_tgs_meta:
-            return False
-
-        timestamp = self.ticket_tgs_meta.get("timestamp")
-        lifetime = self.ticket_tgs_meta.get("lifetime")
-
-        if timestamp is None or lifetime is None:
-            return False
-
-        return int(time.time()) <= int(timestamp) + int(lifetime)
-
     def request_auth_server(self, porta):
         print(f"\n[Cliente] Solicitando Ticket ao AS na porta {porta}...")
 
@@ -63,7 +37,7 @@ class Client:
 
         request = {
             "client_id": self.client_id,
-            "service": "auth_service",
+            "tgs_id": TGS_ID,
             "timestamp": int(time.time())
         }
 
@@ -88,6 +62,7 @@ class Client:
             "timestamp": decrypted_response.get("timestamp"),
             "lifetime": decrypted_response.get("lifetime"),
         }
+        
         # Mostrar campos principais da resposta decifrada
         print(f"[Cliente] Chave Cliente-TGS: {self.key_client_tgs}")
         print(f"[Cliente] ID TGS: {self.tgs_id}, timestamp: {decrypted_response.get('timestamp')}, lifetime: {decrypted_response.get('lifetime')}")
@@ -242,3 +217,30 @@ class Client:
             raise Exception("Prova de autenticacao do Service invalida")
 
         print(f"[Cliente] Prova de autenticacao validada: timestamp {service_proof.get('timestamp')}")
+    
+    def has_valid_service_ticket(self, service_id):
+        ticket_service = self.ticket_service.get(service_id)
+        ticket_meta = self.ticket_service_meta.get(service_id)
+
+        if not ticket_service or not ticket_meta:
+            return False
+
+        timestamp = ticket_meta.get("timestamp")
+        lifetime = ticket_meta.get("lifetime")
+
+        if timestamp is None or lifetime is None:
+            return False
+
+        return int(time.time()) <= int(timestamp) + int(lifetime)
+
+    def has_valid_tgt(self):
+        if not self.ticket_tgs or not self.ticket_tgs_meta:
+            return False
+
+        timestamp = self.ticket_tgs_meta.get("timestamp")
+        lifetime = self.ticket_tgs_meta.get("lifetime")
+
+        if timestamp is None or lifetime is None:
+            return False
+
+        return int(time.time()) <= int(timestamp) + int(lifetime)

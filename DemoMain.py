@@ -6,7 +6,7 @@ from Service import Service
 from TicketServer import TicketServer
 
 
-CLIENT_ID = "guilherme" # guilherme, sara ou joaogui
+CLIENT_ID = "roberto"
 PASSWORD = "password123"
 
 AS_PORT = 5555
@@ -31,6 +31,8 @@ if __name__ == "__main__":
 
     try:
         client = Client(CLIENT_ID, PASSWORD)
+
+        print(f"CD: {client.session_key}")
 
         print("\n=== Fluxo de Demonstracao ===")
         print("1. Solicitando autenticacao ao AS")

@@ -9,10 +9,11 @@ from TicketServer import TGS_SECRET_KEY
 SESSION_KEYS = {
     "joaogui": "KI0qrlG3Mn7QoWIdUnHAbB0oVIhcV1ivKQth1cJ2Nu4=",
     "guilherme" : "BqZ4g3W8+rEXgz/Y07pes9yWWyyOqouO6xHXeanpkLQ=", 
-    "sara" : "scd5k2H9j0UtypyZtFwoXQyLA2+zMiCxtoTRHCWu8mo="
+    "sara" : "scd5k2H9j0UtypyZtFwoXQyLA2+zMiCxtoTRHCWu8mo=",
+    "roberto" : "tvTrILiLzxLjJsKT1FidxQDS8OcwGNntShCRomAmDSs="
 }
 
-TGS_ID = "server_tgs0"
+
 
 class AuthServer(threading.Thread):
     def __init__(self, port=5555):
@@ -28,10 +29,9 @@ class AuthServer(threading.Thread):
             request = self.socket.recv_json() # Aguarda a requisição do cliente
             
             try:
-                if request["service"] != "auth_service":
-                    raise Exception("Serviço indisponível")
-    
                 client_id = request["client_id"]
+
+                tgs_id = request["tgs_id"]
 
                 if client_id not in SESSION_KEYS:
                     raise Exception("Cliente desconhecido")
@@ -46,7 +46,7 @@ class AuthServer(threading.Thread):
                     "key_client_tgs": key_client_tgs,
                     "client_id" : client_id,
                     "client_address" : "localhost",
-                    "tgs_id" : TGS_ID,
+                    "tgs_id" : tgs_id,
                     "timestamp": now,
                     "lifetime": 300
                 }
@@ -57,7 +57,7 @@ class AuthServer(threading.Thread):
 
                 response_payload = {
                     "key_client_tgs": key_client_tgs,
-                    "tgs_id" : TGS_ID,
+                    "tgs_id" : tgs_id,
                     "timestamp": now,
                     "lifetime" : 300,
                     "ticket_tgs": ticket_tgs,
